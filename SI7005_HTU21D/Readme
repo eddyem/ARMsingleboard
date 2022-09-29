@@ -1,0 +1,2 @@
+Code to work with I2C T/RH sensors SI7005 or HTU21D (can't work together due to identical 
+addresses)
