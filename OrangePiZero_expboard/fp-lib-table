@@ -1,0 +1,3 @@
+(fp_lib_table
+  (lib (name "opi-hat")(type "KiCad")(uri "${KIPRJMOD}/opi-hat.pretty")(options "")(descr ""))
+)

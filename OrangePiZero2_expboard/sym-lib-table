@@ -1,0 +1,4 @@
+(sym_lib_table
+  (lib (name "opi-hat-rescue")(type "KiCad")(uri "${KIPRJMOD}/opi-hat-rescue.kicad_sym")(options "")(descr "")(disabled))
+  (lib (name "opi-hat")(type "KiCad")(uri "${KIPRJMOD}/opi-hat-eagle-import.kicad_sym")(options "")(descr ""))
+)
