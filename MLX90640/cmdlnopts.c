@@ -45,6 +45,7 @@ static glob_pars const Gdefault = {
     .addr = DEFAULT_ADDR,
     .device = DEFAULT_I2C,
     .pidfile = DEFAULT_PIDFILE,
+    .simple = 2,
     .logfile = NULL // don't save logs
 };
 
@@ -59,6 +60,7 @@ static myoption cmdlnopts[] = {
     {"pidfile", NEED_ARG,   NULL,   'P',    arg_string, APTR(&G.pidfile),   _("pidfile (default: " DEFAULT_PIDFILE ")")},
     {"device",  NEED_ARG,   NULL,   'd',    arg_string, APTR(&G.device),    _("I2C device path (default: " DEFAULT_I2C ")")},
     {"address", NEED_ARG,   NULL,   'a',    arg_int,    APTR(&G.addr),      _("slave address (default:" STR(DEFAULT_ADDR) ")")},
+    {"simple",  NEED_ARG,   NULL,   's',    arg_int,    APTR(&G.simple),    _("simple= (0..2, default: 2)")},
    end_option
 };
 

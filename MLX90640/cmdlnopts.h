@@ -23,6 +23,7 @@
  */
 typedef struct{
     int addr;               // slave address
+    int simple;				// 'simple'
     char *device;           // I2C device
     char *pidfile;          // name of PID file
     char *logfile;          // logging to this file

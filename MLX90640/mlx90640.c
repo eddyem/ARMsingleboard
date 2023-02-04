@@ -52,7 +52,7 @@ static int errctr = 0;
 static double Tlast = 0.;
 #define chstate()  do{errctr = 0; Tlast = dtime(); DBG("chstate()");}while(0)
 #define chkerr()   do{DBG("chkerr(), T=%g", dtime()-Tlast); if(++errctr > MLX_MAXERR_COUNT){ DBG("-> M_ERROR"); return FALSE;}else continue;}while(0)
-#define chktmout() do{DBG("chktmout, T=%g", dtime()-Tlast); if(dtime() - Tlast > MLX_TIMEOUT){ DBG("Timeout! -> M_ERROR"); return FALSE;}else continue;}while(0)
+#define chktmout() do{/*DBG("chktmout, T=%g", dtime()-Tlast);*/ if(dtime() - Tlast > MLX_TIMEOUT){ DBG("Timeout! -> M_ERROR"); return FALSE;}else continue;}while(0)
 
 
 // read register value
@@ -90,6 +90,7 @@ static int read_regN(uint16_t regaddr, uint16_t *data, uint16_t N){
     m[0].buf = a; m[1].buf = d;
     if(ioctl(I2Cfd, I2C_RDWR, &x) < 0) return FALSE;
     if(data) for(int i = 0; i < N; ++i){
+//        DBG("Read 0x%04x from reg 0x%04x", (uint16_t)((d[2*i] << 8) | (d[2*i+1])), regaddr+i);
         *data++ = (uint16_t)((d[2*i] << 8) | (d[2*i + 1]));
     }
     return TRUE;
