@@ -1,0 +1,35 @@
+Client/server GPIO monitoring using SSL-protected TCP-socket connection between client and server (check certs from both sides)
+
+Both client and server monitors 6 GPIO inputs and send messages "UPxx" and "DOWNxx" when button was pressed (0) or released (1).
+When receiving such messages client/server check by local table correspongind outputs and change their values. If all OK, return "OK",
+if not - return "FAIL".
+
+
+Usage: sslclient [args]
+
+        Where args are:
+
+  -C, --command           don't run client as daemon, just send given commands to server
+  -P, --pidfile=arg       pidfile (default: /tmp/sslsock.pid)
+  -a, --ca=arg            path to SSL ca - base cert (default:ca_cert.pem)
+  -c, --certificate=arg   path to SSL sertificate (default: client_cert.pem)
+  -h, --help              show this help
+  -k, --key=arg           path to SSL key (default: client_key.pem)
+  -l, --logfile=arg       file to save logs
+  -p, --port=arg          port to open (default: 4444)
+  -s, --server=arg        server IP address or name
+  -v, --verbose           increase log verbose level (default: LOG_WARN)
+
+
+Usage: sslserver [args]
+
+        Where args are:
+
+  -P, --pidfile=arg       pidfile (default: /tmp/sslsock.pid)
+  -a, --ca=arg            path to SSL ca - base cert (default:ca_cert.pem)
+  -c, --certificate=arg   path to SSL sertificate (default: server_cert.pem)
+  -h, --help              show this help
+  -k, --key=arg           path to SSL key (default: server_key.pem)
+  -l, --logfile=arg       file to save logs
+  -p, --port=arg          port to open (default: 4444)
+  -v, --verbose           increase log verbose level (default: LOG_WARN)
