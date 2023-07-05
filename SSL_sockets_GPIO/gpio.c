@@ -69,7 +69,7 @@ int gpio_open_device(const char *path){
 }
 
 /**
- * @brief gpio_set_outputs - set output pins
+ * @brief gpio_set_outputs - set output pins (ACTIVE_LOW!!! so we need to invert incoming data for proper work)
  * @return rq.fd or -1 if failed
  */
 int gpio_setup_outputs(){
@@ -102,7 +102,7 @@ static int gpio_setreset(int input, int set){
     bzero(&values, sizeof(values));
     uint64_t val = (1<<idx) & GPIO_OUT_MASK;
     values.mask = val;
-    values.bits = set ? val : 0;
+    values.bits = set ? 0 : val; // invert bit due to GPIO_V2_LINE_FLAG_ACTIVE_LOW
     DBG("mask=%" PRIu64 ", val=%" PRIu64, values.mask, values.bits);
     if(-1 == ioctl(rq_out.fd, GPIO_V2_LINE_SET_VALUES_IOCTL, &values)){
         LOGERR("Unable to change GPIO values (mask=%" PRIu64 ", val=%" PRIu64 ": %s", values.mask, values.bits, strerror(errno));
