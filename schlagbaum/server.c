@@ -23,10 +23,10 @@
 #ifdef __arm__
 #include "gpio.h"
 
-// GPIO25 - LEDopen, 8 - LEDclose
+// GPIO7 - LEDopen, 8 - LEDclose
 static cmd_t server_in_gpios[] = {
-    {25, CMD_LED0},
-    {8, CMD_LED1},
+    {8, CMD_LED0},
+    {7, CMD_LED1},
     {0, NULL}
 };
 
@@ -56,9 +56,10 @@ static int handle_connection(SSL *ssl){
     LOGDBG("fd=%d, message=%s", sd, buf);
     const char *ans = "FAIL";
 #ifdef __arm__
-    if(strcmp(buf, CMD_OPEN) || strcmp(buf, CMD_CLOSE)){ // shut both 17/27 channels before run cmd
-        gpio_clear_output(17);
-        gpio_clear_output(27);
+    if(0 == strcmp(buf, CMD_OPEN) || 0 == strcmp(buf, CMD_CLOSE)){ // shut both 17/27 channels before run cmd
+        DBG("Got cmd %s -> 1st close all", buf);
+        gpio_set_output(17);
+        gpio_set_output(27);
         usleep(100000); // wait a little
     }
 #endif

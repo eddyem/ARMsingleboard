@@ -30,6 +30,7 @@
 #else
 #include "client.h"
 #endif
+#include "gpio.h"
 
 #ifdef SERVER
 static int OpenConn(int port){
@@ -203,7 +204,7 @@ int read_string(SSL *ssl, char *buf, int l){
 /**
  * @brief poll_gpio - GPIO polling
  * @param ssl - ssl array to write
- * @param nfd - amount of descriptors (+1 - starting frol ssls[1])
+ * @param nfd - amount of descriptors (+1 - starting frol ssls[1]) for server or -1 for client
  */
 void poll_gpio(SSL **ssls, int nfd, cmd_t *commands){
     static double t0 = 0.;
@@ -211,15 +212,22 @@ void poll_gpio(SSL **ssls, int nfd, cmd_t *commands){
     char buf[64];
     uint32_t up, down;
     t0 = dtime();
-    if(gpio_poll(&up, &down) <= 0 || !up) return;
+    if(gpio_poll(&up, &down) <= 0 || !down) return;
+    DBG("DOWN=%d, nfd=%d", down, nfd);
     for(cmd_t *c = commands; c->cmd; ++c){
-        if(c->gpio != up) continue;
+	DBG("Test %d - %s", c->gpio, c->cmd);
+        if(c->gpio != down) continue;
+	DBG("Got event %s", c->cmd);
         sprintf(buf, "%s\n", c->cmd);
         int l = strlen(buf);
-        if(nfd == 1){
+	if(!ssls) return;
+        if(nfd == -1){
+	    DBG("Write to server");
             if(SSL_write(ssls[0], buf, l) <= 0) WARNX("SSL write error");
         }else{
+	    DBG("Write to all %d clients", nfd-1);
             for(int i = nfd-1; i > 0; --i){
+		DBG("ssls[%d]", i);
                 if(SSL_write(ssls[i], buf, l) <= 0){
                     WARNX("SSL write error");
                 }
@@ -237,12 +245,12 @@ int handle_message(const char *msg, cmd_t *gpios){
     int ret = FALSE;
     for(cmd_t *c = gpios; c->cmd; ++c){
         if(strcmp(msg, c->cmd)) continue;
-        DBG("set pin %d", c->gpio);
+        DBG("set pin %d (to 0)", c->gpio);
 #ifdef __arm__
-        if(!gpio_set_output(pin)) LOGERR("Can't change state according to pin %d", pin);
+        if(!gpio_clear_output(c->gpio)) LOGERR("Can't change state according to pin %d", c->gpio);
         else{
-            LOGMSG("%s gpio %d", act == 1 ? "Set" : "Reset", pin);
-            verbose(1, "%s gpio %d", act == 1 ? "Set" : "Reset", pin);
+            LOGMSG("RESET gpio %d", c->gpio);
+            verbose(1, "RESET gpio %d", c->gpio);
             ret = TRUE;
         }
 #endif

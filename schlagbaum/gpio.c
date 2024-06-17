@@ -39,7 +39,10 @@ static const int gpio_inputs[GPIO_IN_NUMBER] = {18, 23, 24, 25, 8, 7};
 static const int gpio_outputs[GPIO_OUT_NUMBER] = {17, 27, 22, 10, 9, 11};
 
 // last time GPIO was activated
-static double gpio_set_time[GPIO_OUT_NUMBER] = {-1., -1., -1., -1., -1., -1.};
+static double gpio_clear_time[GPIO_OUT_NUMBER] = {1., 1., 1., 1., 1., 1.};
+// last GPIO event times & event values
+static double gpio_in_time[GPIO_IN_NUMBER] = {0.};
+static enum gpio_v2_line_event_id gpio_in_event_id[GPIO_IN_NUMBER] = {0};
 
 /**
  * @brief gpio_chkclr - clear outputs by timeout
@@ -47,9 +50,9 @@ static double gpio_set_time[GPIO_OUT_NUMBER] = {-1., -1., -1., -1., -1., -1.};
 static void gpio_chkclr(){
     double tnow = dtime();
     for(int i = 0; i < GPIO_OUT_NUMBER; ++i){
-        if(t[i] < 0.) continue;
-        if(tnow - t[i] < GPIO_TIMEOUT) continue;
-        gpio_clear_output(gpio_outputs[i]);
+        if(gpio_clear_time[i] < 0.) continue;
+        if(tnow - gpio_clear_time[i] < GPIO_TIMEOUT) continue;
+        gpio_set_output(gpio_outputs[i]);
     }
 }
 
@@ -94,30 +97,32 @@ int gpio_setup_outputs(){
         rq_out.offsets[i] = gpio_outputs[i];
     snprintf(rq_out.consumer, GPIO_MAX_NAME_SIZE-1, "outputs");
     rq_out.num_lines = GPIO_OUT_NUMBER;
-    rq_out.config.flags = GPIO_V2_LINE_FLAG_OUTPUT | GPIO_V2_LINE_FLAG_OPEN_DRAIN | GPIO_V2_LINE_FLAG_ACTIVE_LOW | GPIO_V2_LINE_FLAG_BIAS_DISABLED;
+    rq_out.config.flags = GPIO_V2_LINE_FLAG_OUTPUT | GPIO_V2_LINE_FLAG_BIAS_DISABLED;
     rq_out.config.num_attrs = 0;
     if(-1 == ioctl(gpiofd, GPIO_V2_GET_LINE_IOCTL, &rq_out)){
         LOGERR("Unable setup outputs: %s", strerror(errno));
         WARNX("Can't setup outputs");
         return -1;
     }
+    gpio_chkclr(); // set all outputs
+    DBG("Outputs are ready");
     return rq_out.fd;
 }
 
-static int gpio_setreset(int input, int set){
+static int gpio_setreset(int output, int set){
     int idx = -1;
-    for(int i = 0; i < GPIO_IN_NUMBER; ++i){
-        if(gpio_inputs[i] == input){
+    for(int i = 0; i < GPIO_OUT_NUMBER; ++i){
+        if(gpio_outputs[i] == output){
             idx = i; break;
         }
     }
-    DBG("idx = %d", idx);
     if(idx < 0 || idx > GPIO_OUT_NUMBER) return FALSE;
+    if(set == 0 && (dtime() - gpio_clear_time[idx] < GPIO_SETTMOUT)) return FALSE; // time!
     struct gpio_v2_line_values values;
     bzero(&values, sizeof(values));
     uint64_t val = (1<<idx) & GPIO_OUT_MASK;
     values.mask = val;
-    values.bits = set ? 0 : val; // invert bit due to GPIO_V2_LINE_FLAG_ACTIVE_LOW
+    values.bits = set ? val : 0;
     DBG("mask=%" PRIu64 ", val=%" PRIu64, values.mask, values.bits);
     if(-1 == ioctl(rq_out.fd, GPIO_V2_LINE_SET_VALUES_IOCTL, &values)){
         LOGERR("Unable to change GPIO values (mask=%" PRIu64 ", val=%" PRIu64 ": %s", values.mask, values.bits, strerror(errno));
@@ -125,8 +130,8 @@ static int gpio_setreset(int input, int set){
         return FALSE;
     }
     // change last event time
-    if(set) gpio_set_time[idx] = 0;
-    else gpio_set_time[idx] = dtime();
+    if(set == 0) gpio_clear_time[idx] = dtime();
+    else gpio_clear_time[idx] = -1.;
     return TRUE;
 }
 
@@ -135,16 +140,18 @@ static int gpio_setreset(int input, int set){
  * @param input - number of input pin
  * @return true if all OK, false if failed
  */
-int gpio_set_output(int input){
-    return gpio_setreset(input, 1);
+int gpio_set_output(int output){
+    DBG("GPIO SET");
+    return gpio_setreset(output, 1);
 }
 /**
  * @brief gpio_clear_output - clear to 0 output pin
  * @param input - number of input pin
  * @return true if all OK, false if failed
  */
-int gpio_clear_output(int input){
-    return gpio_setreset(input, 0);
+int gpio_clear_output(int output){
+    DBG("GPIO CLEAR");
+    return gpio_setreset(output, 0);
 }
 
 
@@ -177,39 +184,41 @@ int gpio_poll(uint32_t *up, uint32_t *down){
     if(up) *up = 0;
     if(down) *down = 0;
     gpio_chkclr(); // clear old outputs
-    do{
-        pfd.fd = rq_in.fd;
-        pfd.events = POLLIN | POLLPRI;
-        int p = poll(&pfd, 1, 1);
-        if(p == 0) break; // nothing happened
-        else if(p == -1){
-            LOGERR("poll() error: %s", strerror(errno));
-            WARNX("GPIO poll() error");
-            return -1;
-        }
-        DBG("Got GPIO event!");
-        int r = read(rq_in.fd, &event, sizeof(struct gpio_v2_line_event));
-        if(r != sizeof(struct gpio_v2_line_event)){
-            LOGERR("Error reading GPIO data");
-            WARNX("Error reading GPIO data");
-            return -1;
-        }
-        verbose(1, "Got event:\n\ttimestamp=%" PRIu64 "\n\tid=%d\n\toff=%d\n\tseqno=%d\n\tlineseqno=%d",
-            event.timestamp_ns, event.id, event.offset, event.seqno, event.line_seqno);
-        if(up){
-            if(event.id == GPIO_V2_LINE_EVENT_RISING_EDGE){
-                *up = event.offset;
-                break;
-            }else *up = 0;
-        }
-        if(down){
-            if(event.id == GPIO_V2_LINE_EVENT_FALLING_EDGE){
-                *down = event.offset;
-                break;
-            }else *down = 0;
-        }
-    }while(1);
-    return (int)event.offset;
+    pfd.fd = rq_in.fd;
+    pfd.events = POLLIN | POLLPRI;
+    int p = poll(&pfd, 1, 1);
+    if(p == 0) return 0; // nothing happened
+    else if(p == -1){
+        LOGERR("poll() error: %s", strerror(errno));
+        WARNX("GPIO poll() error");
+        return -1;
+    }
+    DBG("Got GPIO event!");
+    int r = read(rq_in.fd, &event, sizeof(struct gpio_v2_line_event));
+    if(r != sizeof(struct gpio_v2_line_event)){
+        LOGERR("Error reading GPIO data");
+        WARNX("Error reading GPIO data");
+        return -1;
+    }
+    int idx = event.offset;
+    double tnow = dtime();
+    // omit same events or bouncing
+    if(gpio_in_event_id[idx] == event.id  || tnow - gpio_in_time[idx] < GPIO_DEBOUNSE_TIMEOUT) return 0;
+    gpio_in_event_id[idx] = event.id;
+    gpio_in_time[idx] = tnow;
+    verbose(1, "Got event:\n\ttimestamp=%" PRIu64 "\n\tid=%d\n\toff=%d\n\tseqno=%d\n\tlineseqno=%d\n\ttnow=%.3f",
+        event.timestamp_ns, event.id, idx, event.seqno, event.line_seqno, tnow);
+    if(up){
+        if(event.id == GPIO_V2_LINE_EVENT_RISING_EDGE){
+            *up = idx;
+        }else *up = 0;
+    }
+    if(down){
+        if(event.id == GPIO_V2_LINE_EVENT_FALLING_EDGE){
+            *down = idx;
+        }else *down = 0;
+    }
+    return idx;
 }
 
 void gpio_close(){

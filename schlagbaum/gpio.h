@@ -37,12 +37,16 @@
 
 // timeout - clear GPIO after receiving command - 1 minute
 #define GPIO_TIMEOUT    (60.)
+// don't allow to manage with GPIO over this time after last ON
+#define GPIO_SETTMOUT   (5.0)
+// time for debounce (seconds)
+#define GPIO_DEBOUNSE_TIMEOUT   (0.5)
 
 int gpio_open_device(const char *path);
 int gpio_setup_outputs();
 int gpio_setup_inputs();
 int gpio_poll(uint32_t *up, uint32_t *down);
-int gpio_set_output(int input);
-int gpio_clear_output(int input);
+int gpio_set_output(int output);
+int gpio_clear_output(int output);
 void gpio_close();
 

@@ -69,7 +69,7 @@ static void readssl(SSL *ssl){
     if(bytes > 0){
         buf[bytes] = 0;
         verbose(1, "Received: \"%s\"", buf);
-        handle_message(buf, client_out_gpios);
+        if(!G.commands) handle_message(buf, client_out_gpios); // don't react on incoming messages if just send commands
     }else if(bytes < 0){
         LOGWARN("Server disconnected or other error");
         ERRX("Disconnected");
@@ -114,7 +114,7 @@ void clientproc(SSL_CTX *ctx, int fd){
     }
     while(1){
 #ifdef __arm__
-        poll_gpio(&ssl, 1, client_in_gpios);       
+        poll_gpio(&ssl, -1, client_in_gpios);       
 #endif
         readssl(ssl);
     }
