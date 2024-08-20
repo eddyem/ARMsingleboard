@@ -2,12 +2,12 @@
 CLIENT := sslclient
 SERVER := sslserver
 LDFLAGS += -fdata-sections -ffunction-sections -Wl,--gc-sections -Wl,--discard-all
-LDFLAGS += -lusefull_macros -lssl -lcrypto
+LDFLAGS += -lusefull_macros -lssl -lcrypto -lm
 DEFINES := $(DEF) -D_GNU_SOURCE -D_XOPEN_SOURCE=1111
 SOBJDIR := mkserver
 COBJDIR := mkclient
 CFLAGS += -O2 -Wall -Wextra -Wno-trampolines -pthread
-COMMSRCS := sslsock.c daemon.c cmdlnopts.c main.c
+COMMSRCS := sslsock.c daemon.c cmdlnopts.c main.c gpio.c
 SSRC := server.c $(COMMSRCS)
 CSRC := client.c $(COMMSRCS)
 SOBJS := $(addprefix $(SOBJDIR)/, $(SSRC:%.c=%.o))
@@ -43,13 +43,13 @@ $(TARGFILE):
 $(CLIENT) : DEFINES += -DCLIENT
 $(CLIENT) : $(COBJDIR) $(COBJS)
 	@echo -e "\tLD $(CLIENT)"
-	$(CC) $(LDFLAGS) $(COBJS) -o $(CLIENT)
+	$(CC) $(COBJS) $(LDFLAGS) -o $(CLIENT)
 
 
 $(SERVER) : DEFINES += -DSERVER
 $(SERVER) : $(SOBJDIR) $(SOBJS)
 	@echo -e "\tLD $(SERVER)"
-	$(CC) $(LDFLAGS) $(SOBJS) -o $(SERVER)
+	$(CC) $(SOBJS) $(LDFLAGS) -o $(SERVER)
 
 $(SOBJDIR):
 	@mkdir $(SOBJDIR)
