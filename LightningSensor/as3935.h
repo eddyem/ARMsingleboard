@@ -38,19 +38,24 @@ enum AS3935_REGISTERS{
 
 // REGISTERS
 
-typedef struct{
+typedef union{
+    struct{
     uint8_t PWD : 1;
     uint8_t AFE_GB : 5;
     uint8_t RESERVED : 2;
+    }; uint8_t u8;
 } t_afe_gain;
 
-typedef struct{
+typedef union{
+    struct{
     uint8_t WDTH : 4;
     uint8_t NF_LEV : 3;
     uint8_t RESERVED : 1;
+    }; uint8_t u8;
 } t_threshold;
 
-typedef struct{
+typedef union{
+    struct{
     uint8_t SREJ : 4;
 // minimal number of lightnings
 #define NUM_LIG_1   (0)
@@ -60,9 +65,11 @@ typedef struct{
     uint8_t MIN_NUM_LIG : 2;
     uint8_t CL_STAT : 1;
     uint8_t RESERVED : 1;
+    }; uint8_t u8;
 } t_lightning_reg;
 
-typedef struct{
+typedef union{
+    struct{
 // interrupt flags
 // noice level too high
 #define INT_NH  (1)
@@ -74,30 +81,39 @@ typedef struct{
     uint8_t RESERVED : 1;
     uint8_t MASK_DIST : 1;
     uint8_t LCO_FDIV : 2;
+    }; uint8_t u8;
 } t_int_mask_ant;
 
-typedef struct{
+typedef union{
+    struct{
     uint8_t S_LIG_MM : 5;
     uint8_t RESERVED : 3;
+    }; uint8_t u8;
 } t_s_lig_mm;
 
-typedef struct{
+typedef union{
+    struct{
     uint8_t DISTANCE : 6;
     uint8_t RESERVED : 2;
+    }; uint8_t u8;
 } t_distance;
 
-typedef struct{
+typedef union{
+    struct{
     uint8_t TUN_CAP : 4;
     uint8_t RESERVED : 1;
     uint8_t DISP_TRCO : 1;
     uint8_t DISP_SRCO : 1;
     uint8_t DISP_LCO : 1;
+    }; uint8_t u8;
 } t_tun_disp;
 
-typedef struct{
+typedef union{
+    struct{
     uint8_t RESERVED : 6;
     uint8_t CALIB_NOK : 1;
     uint8_t CALIB_DONE : 1;
+    }; uint8_t u8;
 } t_calib;
 
 // direct command send to PRESET_DEFAULT and CALIB_RCO
@@ -108,6 +124,9 @@ typedef struct{
 int as3935_open(const char *path, uint8_t id);
 int as3935_getter(uint8_t reg, uint8_t *data);
 int as3935_setter(uint8_t reg, uint8_t data);
+int as3935_displco(uint8_t n);
+int as3935_tuncap(uint8_t n);
+int as3935_gain(uint8_t n);
 int as3935_wakeup();
 int as3935_calib_rco();
 int as3935_set_gain(uint8_t g);
@@ -121,3 +140,4 @@ int as3935_mask_disturber(uint8_t m);
 int as3935_lco_fdiv(uint8_t d);
 int as3935_energy(uint32_t *E);
 int as3935_distance(uint8_t *d);
+int as3935_resetdef();

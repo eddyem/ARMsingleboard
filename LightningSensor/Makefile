@@ -1,7 +1,7 @@
 # run `make DEF=...` to add extra defines
 PROGRAM := lightning
 LDFLAGS := -fdata-sections -ffunction-sections -Wl,--gc-sections -Wl,--discard-all
-LDFLAGS += -lusefull_macros
+LDFLAGS += -lusefull_macros -lm
 SRCS := $(wildcard *.c)
 DEFINES := $(DEF) -D_GNU_SOURCE -D_XOPEN_SOURCE=1111
 OBJDIR := mk
